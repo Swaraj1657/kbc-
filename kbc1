@@ -1,0 +1,226 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+// Structure to represent a question
+struct Question {
+    char question[260]; 
+    char options[4][50];
+    int correctOption;
+};
+
+// Structure to represent a lifeline
+struct Lifeline {
+    char name[50];
+    int used;
+};
+int totalQuestions = 10;
+
+// Function to display a question
+void displayQuestion(struct Question q) {
+    printf("\e[0;90m\n%s\n", q.question);
+    for (int i = 0; i < 4; i++) {
+        printf("\e[0;097m%d. %s\n", i + 1, q.options[i]);
+    }
+    printf("Select the correct option (1-4) & 5 for Lifeline :  ");
+}
+
+// Function to check the answer
+int checkAnswer(struct Question q, int userAnswer) {
+    return (userAnswer == q.correctOption);
+}
+// Function to implement the "50:50" lifeline
+void fiftyFifty(struct Question *q) {
+    int correct = q->correctOption - 1;
+    int eliminated1, eliminated2;
+
+    do {
+        eliminated1 = rand() % 4;
+    } while (eliminated1 == correct);
+
+    do {
+        eliminated2 = rand() % 4;
+    } while (eliminated2 == correct || eliminated2 == eliminated1);
+
+    // Display the question with two options eliminated
+    printf("50:50 Lifeline: %s\n", q->question);
+    for (int i = 0; i < 4; i++) {
+        if (i == correct || i == eliminated1 || i == eliminated2) {
+            printf("%d. %s\n", i + 1, q->options[i]);
+        }
+    }
+}
+// Function to simulate "Phone-a-Friend" lifeline
+void phoneAFriend() {
+    // Simulate a random response from the friend
+    const char* friendResponses[] = {
+        "I think the answer is A.",
+        "I'm not sure, but I guess it's B.",
+        "I'd go with option C.",
+        "I have no idea, but D seems right to me."
+    };
+
+    // Choose a random response
+    int randomResponse = rand() % 4;
+
+    // Display the friend's response
+    printf("Your friend says: %s\n", friendResponses[randomResponse]);
+}
+
+// Function to simulate "Ask the Audience" lifeline
+void askTheAudience(struct Question *q) {
+    int audienceResponses[4] = {0};
+    int totalResponses = 100; // Total audience responses
+
+    // Simulate audience responses
+    for (int i = 0; i < totalResponses; i++) {
+        // Generate a random response that favors the correct answer
+        int response = rand() % 100;
+        int correctOption = q->correctOption - 1; // Convert to 0-based index
+
+        if (response < 70) { // 70% chance to choose the correct answer
+            audienceResponses[correctOption]++;
+        } else {
+            int wrongOption;
+            do {
+                wrongOption = rand() % 4;
+            } while (wrongOption == correctOption);
+
+            audienceResponses[wrongOption]++;
+        }
+    }
+
+    // Display audience responses
+    printf("Audience Responses:\n");
+    for (int i = 0; i < 4; i++) {
+        printf("%c. %s: %d%%\n", 'A' + i, q->options[i], (audienceResponses[i] * 100) / totalResponses);
+    }
+}
+// Function to implement "Switch the Question" lifeline
+int switchTheQuestion(int currentQuestion, int totalQuestions) {
+    // Generate a random index for a new question
+    int newIndex;
+
+    do {
+        newIndex = rand() % totalQuestions;
+    } while (newIndex == currentQuestion); // Ensure the new question is different from the current one
+
+    return newIndex;
+}
+
+
+
+
+
+int main() {
+    int score = 0;
+
+
+    // Initialize random seed
+    srand(time(NULL));
+
+    // Initialize lifelines
+    struct Lifeline lifelines[4] = {
+        {"50:50", 0},
+        {"Phone-a-Friend", 0},
+        {"Ask the Audience", 0},
+        {"Switch the Question", 0}
+    };
+	// Define your 10 questions here
+    struct Question questions[10] = {
+    {"What is the capital of France?", {"London", "Berlin", "Paris", "Madrid"}, 3},
+        {"Which planet is known as the 'Red Planet'?", {"Mars", "Venus", "Earth", "Jupiter"}, 1},
+        {"Which gas do plants absorb from the atmosphere?", {"Oxygen", "Carbon Dioxide", "Nitrogen", "Hydrogen"}, 2},
+        {"Who wrote 'Romeo and Juliet'?", {"Charles Dickens", "William Shakespeare", "Leo Tolstoy", "Jane Austen"}, 2},
+        {"What is the largest mammal on Earth?", {"Elephant", "Blue Whale", "Giraffe", "Kangaroo"}, 2},
+        {"Which gas makes up the majority of Earth's atmosphere?", {"Nitrogen", "Oxygen", "Carbon Dioxide", "Helium"}, 1},
+        {"Which of the following is a prime number?", {"9", "12", "11", "16"}, 3},
+        {"What is the chemical symbol for gold?", {"Ag", "Ge", "Au", "Fe"}, 3},
+        {"Which country is known as the 'Land of the Rising Sun'?", {"China", "India", "Japan", "South Korea"}, 3},
+        {"What is the closest star to Earth?", {"Mars", "Venus", "Sun", "Jupiter"}, 3}
+    };
+
+
+    int lifelineUsed = 0; // Counter for lifelines used
+
+
+    int currentQuestion = 0;
+
+    while (currentQuestion < 10) {
+
+        printf("\e[0;097mQuestion %d:\n", currentQuestion + 1);
+        displayQuestion(questions[currentQuestion]);
+
+        int userAnswer;
+        scanf("%d", &userAnswer);
+
+        if (userAnswer == 5) { // Lifeline
+            if (lifelineUsed < 4) {
+            	printf("\n");
+                printf("\e[1;93m Available Lifelines:\n");
+                for (int i = 0; i < 4; i++) {
+                    if (!lifelines[i].used) {
+                        printf("\e[0;092m%d. %s\n", i + 1, lifelines[i].name);
+                    }
+                }
+				printf("\n");
+                printf("\e[0;097m Select a lifeline (1-4): ");
+                int selectedLifeline;
+                scanf("%d", &selectedLifeline);
+
+                if (selectedLifeline >= 1 && selectedLifeline <= 4 && !lifelines[selectedLifeline - 1].used) {
+                    lifelines[selectedLifeline - 1].used = 1;
+                    lifelineUsed++;
+
+                    switch (selectedLifeline) {
+                    case 1 : fiftyFifty(&questions[currentQuestion]);
+                    break;
+
+                    case 2 : phoneAFriend();
+                    continue;
+                    break;
+
+                    case 3 : askTheAudience(&questions[currentQuestion]);
+                    continue;
+                    break;
+
+                    case 4 : currentQuestion = switchTheQuestion(currentQuestion, totalQuestions); // totalQuestions is the total number of questions
+                    system("clear");
+                    printf("You switched to a new question.\n");
+                    continue;
+                    break;
+
+                    }
+
+                    // Implement the logic for the selected lifeline here
+                    // For example, for "50:50", you can eliminate two wrong options.
+
+                    // Continue to the same question
+
+                }
+
+            }
+            printf("\e[0;31mInvalid lifeline selection. Please try again.\n");
+         continue;
+
+        }
+
+        if (checkAnswer(questions[currentQuestion], userAnswer)) {
+            printf("\e[0;92mCorrect answer! You've earned %d dollars.\n", (currentQuestion + 1) * 100000);
+            score = (currentQuestion + 1) * 100000;
+          //  sleep(2);
+            system("cls");
+            printf("\e[1;95m \t \t ** WELCOME TO KBC ** \n\n\n");
+   		 printf("\e[0;91m \t\t\t\t\t Score is : %d\n",score);
+        } else {
+            printf("\e[0;91mSorry, that's incorrect. Game over.\n");
+            break;
+        }
+
+        currentQuestion++;
+    }
+
+    printf("Congratulations! You've won %d dollars.\n", score);
+
+    return 0;
+}
